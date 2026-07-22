@@ -1,0 +1,46 @@
+# Dependencies and generated builds
+node_modules/
+functions/node_modules/
+.next/
+out/
+dist/
+build/
+functions/lib/
+coverage/
+*.tsbuildinfo
+
+# Local environment values — commit .env.example only
+.env
+.env.*
+!.env.example
+
+# Firebase / Google Cloud credentials — never commit private keys
+*-firebase-adminsdk-*.json
+firebase-adminsdk-*.json
+*service-account*.json
+*serviceAccount*.json
+serviceAccountKey.json
+google-credentials.json
+credentials.json
+secrets/
+*.pem
+*.p12
+*.key
+
+# Firebase local tooling and emulator output
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+
+# Deployment providers
+.vercel/
+
+# Logs, editor files, and operating-system metadata
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

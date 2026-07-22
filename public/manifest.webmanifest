@@ -1,0 +1,20 @@
+{
+  "name": "Reflex Workspace",
+  "short_name": "Reflex",
+  "description": "Internal work coordination for Reflex Reality LLP",
+  "start_url": "/dashboard?source=pwa",
+  "display": "standalone",
+  "background_color": "#0B1117",
+  "theme_color": "#0B1117",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Create task", "short_name": "New task", "url": "/tasks/new", "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }] },
+    { "name": "My tasks", "short_name": "Tasks", "url": "/tasks", "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }] }
+  ]
+}

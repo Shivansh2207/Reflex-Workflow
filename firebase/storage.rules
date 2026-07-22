@@ -1,0 +1,23 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() { return request.auth != null; }
+    function employee() { return firestore.get(/databases/(default)/documents/employees/$(request.auth.uid)).data; }
+    function isActive() { return isSignedIn() && employee().accountStatus == 'active'; }
+    function isAdmin() { return isActive() && employee().role == 'admin'; }
+    function validFile() {
+      return request.resource.size <= 10 * 1024 * 1024 && request.resource.contentType.matches('application/pdf|application/msword|application/vnd.openxmlformats-officedocument.wordprocessingml.document|application/vnd.ms-excel|application/vnd.openxmlformats-officedocument.spreadsheetml.sheet|image/png|image/jpeg|image/webp|text/plain|application/zip');
+    }
+    function task(taskId) { return firestore.get(/databases/(default)/documents/tasks/$(taskId)).data; }
+    function canAccessTask(taskId) { return isActive() && (isAdmin() || task(taskId).createdById == request.auth.uid || request.auth.uid in task(taskId).assignedToIds || request.auth.uid in task(taskId).get('watchers', []) || (employee().role == 'manager' && task(taskId).departmentId == employee().departmentId)); }
+
+    match /employees/{employeeId}/profile/{fileName} {
+      allow read: if isActive();
+      allow write: if isActive() && (employeeId == request.auth.uid || isAdmin()) && validFile() && request.resource.contentType.matches('image/png|image/jpeg|image/webp');
+    }
+    match /tasks/{taskId}/attachments/{attachmentId}/{fileName} { allow read: if canAccessTask(taskId); allow write: if canAccessTask(taskId) && validFile(); }
+    match /tasks/{taskId}/comments/{commentId}/{fileName} { allow read: if canAccessTask(taskId); allow write: if canAccessTask(taskId) && validFile(); }
+    match /announcements/{announcementId}/{fileName} { allow read: if isActive(); allow write: if isAdmin() && validFile(); }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

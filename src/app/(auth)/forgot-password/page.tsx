@@ -1,0 +1,9 @@
+"use client";
+import { ArrowLeft, Mail, Send } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
+import { BrandLogo } from "@/components/shared/BrandLogo";
+import { Button } from "@/components/ui/Button";
+import { resetPassword } from "@/services/authService";
+export default function ForgotPasswordPage() { const [email,setEmail]=useState(""); const [loading,setLoading]=useState(false); async function submit(event: React.FormEvent){event.preventDefault(); setLoading(true); try{await resetPassword(email); toast.success("Reset link sent",{description:"Check your inbox for password reset instructions."});}catch{toast.error("We couldn’t send the reset email.");}finally{setLoading(false);}} return <main className="flex min-h-screen items-center justify-center bg-[var(--background)] p-5"><div className="w-full max-w-md"><BrandLogo className="mb-10" /><div className="card p-7 sm:p-9"><div className="mb-6 flex size-12 items-center justify-center rounded-2xl bg-[var(--cyan-soft)] text-[#0796c2]"><Mail className="size-5" /></div><h1 className="text-2xl font-extrabold tracking-tight">Reset your password</h1><p className="mt-2 text-sm leading-6 text-[var(--muted)]">Enter your work email and we’ll send secure reset instructions.</p><form onSubmit={submit} className="mt-7 space-y-5"><div><label className="label" htmlFor="email">Work email</label><input id="email" type="email" required className="control h-12" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@reflexrealty.in" /></div><Button className="w-full" loading={loading}>Send reset link <Send className="size-4" /></Button></form><Link href="/login" className="mt-6 flex items-center justify-center gap-2 text-xs font-semibold text-[#0796c2]"><ArrowLeft className="size-4" />Back to sign in</Link></div></div></main>; }

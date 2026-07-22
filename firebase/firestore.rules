@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function employeePath() { return /databases/$(database)/documents/employees/$(request.auth.uid); }
+    function currentEmployee() { return get(employeePath()).data; }
+    function isActiveUser() { return isSignedIn() && exists(employeePath()) && currentEmployee().accountStatus == 'active'; }
+    function currentUserRole() { return currentEmployee().role; }
+    function isAdmin() { return isActiveUser() && currentUserRole() == 'admin'; }
+    function isManager() { return isActiveUser() && currentUserRole() == 'manager'; }
+    function isTaskCreator(task) { return task.createdById == request.auth.uid; }
+    function isTaskAssignee(task) { return request.auth.uid in task.assignedToIds; }
+    function isTaskWatcher(task) { return request.auth.uid in task.get('watchers', []); }
+    function canViewTask(task) { return isActiveUser() && (isAdmin() || isTaskCreator(task) || isTaskAssignee(task) || isTaskWatcher(task) || (isManager() && task.departmentId == currentEmployee().departmentId)); }
+    function canEditTask(task) { return canViewTask(task) && (isAdmin() || isTaskCreator(task) || isTaskAssignee(task) || (isManager() && task.departmentId == currentEmployee().departmentId)); }
+    function canApproveTask(task) { return isActiveUser() && (isAdmin() || task.reviewerId == request.auth.uid || (isManager() && task.departmentId == currentEmployee().departmentId)); }
+    function protectedTaskFieldsUnchanged() { return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['taskNumber', 'createdAt', 'createdById', 'createdByName']); }
+
+    match /employees/{employeeId} {
+      allow read: if isActiveUser() && (resource.data.accountStatus == 'active' || isAdmin() || employeeId == request.auth.uid);
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isActiveUser() && employeeId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phone', 'profilePhotoUrl', 'bio', 'skills', 'availabilityStatus', 'notificationPreferences', 'updatedAt']));
+      allow delete: if false;
+    }
+
+    match /departments/{departmentId} {
+      allow read: if isActiveUser();
+      allow write: if isAdmin();
+    }
+
+    match /projects/{projectId} {
+      allow read: if isActiveUser();
+      allow create: if isAdmin() || isManager();
+      allow update: if isAdmin() || (isManager() && resource.data.departmentId == currentEmployee().departmentId);
+      allow delete: if false;
+    }
+
+    match /tasks/{taskId} {
+      allow read: if canViewTask(resource.data);
+      // Creation is restricted to the callable Cloud Function so task numbers,
+      // assignment policy, notifications, and audit records remain atomic.
+      allow create: if false;
+      allow update: if canEditTask(resource.data) && protectedTaskFieldsUnchanged() && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['approvedAt']) || canApproveTask(resource.data));
+      allow delete: if false;
+
+      match /comments/{commentId} {
+        function parentTask() { return get(/databases/$(database)/documents/tasks/$(taskId)).data; }
+        allow read: if canViewTask(parentTask());
+        allow create: if canViewTask(parentTask()) && request.resource.data.authorId == request.auth.uid && request.resource.data.content is string && request.resource.data.content.size() > 0;
+        allow update: if canViewTask(parentTask()) && resource.data.authorId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['content', 'mentions', 'attachments', 'updatedAt', 'isEdited', 'isDeleted']);
+        allow delete: if false;
+      }
+
+      match /activities/{activityId} { allow read: if canViewTask(get(/databases/$(database)/documents/tasks/$(taskId)).data); allow write: if false; }
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if isActiveUser();
+      allow create: if isAdmin() || isManager();
+      allow update: if isAdmin() || (isManager() && resource.data.authorId == request.auth.uid);
+      allow delete: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isActiveUser() && resource.data.userId == request.auth.uid;
+      allow update: if isActiveUser() && resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']);
+      allow create, delete: if false;
+    }
+
+    match /users/{userId} { allow read, update: if isActiveUser() && userId == request.auth.uid; allow create: if isSignedIn() && userId == request.auth.uid; allow delete: if false; }
+    match /organizationSettings/{settingId} { allow read: if isActiveUser(); allow write: if isAdmin(); }
+    match /taskCounters/{counterId} { allow read, write: if false; }
+    match /invitations/{invitationId} { allow read, write: if false; }
+    match /auditLogs/{logId} { allow read: if isAdmin(); allow write: if false; }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

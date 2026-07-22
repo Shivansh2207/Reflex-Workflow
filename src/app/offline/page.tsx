@@ -1,0 +1,4 @@
+import Link from "next/link";
+import { WifiOff } from "lucide-react";
+import { BrandLogo } from "@/components/shared/BrandLogo";
+export default function OfflinePage(){return <main className="flex min-h-screen items-center justify-center bg-[#0b1117] p-6"><div className="max-w-md text-center"><BrandLogo light className="mb-10 justify-center"/><div className="mx-auto mb-5 flex size-16 items-center justify-center rounded-2xl bg-white/5 text-[#17a9d6]"><WifiOff className="size-7"/></div><h1 className="text-2xl font-extrabold text-white">You’re offline</h1><p className="mt-3 text-sm leading-6 text-slate-400">Reconnect to load new work. Recently viewed tasks may still be available from your device cache.</p><Link href="/dashboard" className="mt-7 inline-flex h-11 items-center rounded-xl bg-[#17a9d6] px-5 text-sm font-bold text-white">Try again</Link></div></main>}
